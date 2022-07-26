@@ -6,27 +6,20 @@ import Particles from "react-tsparticles";
 import { loadFull } from "tsparticles";
 import Navigation from './components/Navigation/Navigation';
 import Logo from './components/Logo/Logo';
+import Register from './components/Register/Register';
+import SignIn from './components/SignIn/SignIn';
 import FaceRecognition from './components/FaceRecognition/FaceRecognition';
 import Rank from './components/Rank/Rank';
 import ImageLinkForm from './components/ImageLinkForm/ImageLinkForm';
 
 const app = new Clarifai.App({
   apiKey: 'e6e4ca15d9a7472f83698d91d5a9c556'
- });
+});
 
 const particlesOptions = {
-  background: {
-    color: {
-      value: "#0d47a1",
-    },
-  },
   fpsLimit: 120,
   interactivity: {
     events: {
-      onClick: {
-        enable: true,
-        mode: "push",
-      },
       onHover: {
         enable: true,
         mode: "repulse",
@@ -107,11 +100,13 @@ class App extends Component {
       input: '',
       imageUrl: '',
       box: [],
+      route: 'signIn',
+      isSignedIn: false,
     }
   }
 
   calculateFaceLocation = (data) => {
-    const clarifaiFace =  data.outputs[0].data.regions[0].region_info.bounding_box;
+    const clarifaiFace = data.outputs[0].data.regions[0].region_info.bounding_box;
     const image = document.getElementById('inputImage');
     const width = Number(image.width);
     const height = Number(image.height);
@@ -124,16 +119,15 @@ class App extends Component {
   }
 
   displayFaceBox = (box) => {
-    console.log(box);
-    this.setState({box: box});
+    this.setState({ box: box });
   }
 
   onInputChange = (event) => {
-    this.setState({input: event.target.value});
+    this.setState({ input: event.target.value });
   }
-  
+
   onButtonSubmit = () => {
-    this.setState({imageUrl: this.state.input});
+    this.setState({ imageUrl: this.state.input });
     app.models
       .predict(
         Clarifai.FACE_DETECT_MODEL,
@@ -144,7 +138,17 @@ class App extends Component {
       .catch(err => console.log(err));
   }
 
+  onRouteChange = (route) => {
+    if (route === "signOut"){
+      this.setState({isSignedIn: false})
+    } else if (route === "home") {
+      this.setState({isSignedIn: true})
+    }
+    this.setState({route: route});
+  }
+
   render() {
+    const {isSignedIn, imageUrl, route, box} = this.state;
     return (
       <div className="App">
         <Particles className='particles'
@@ -153,11 +157,20 @@ class App extends Component {
           loaded={particlesLoaded}
           options={particlesOptions}
         />
-        <Navigation />
-        <Logo />
-        <Rank />
-        <ImageLinkForm onInputChange={this.onInputChange} onButtonSubmit={this.onButtonSubmit} />
-        <FaceRecognition box={this.state.box} imageUrl={this.state.imageUrl} />
+        <Navigation isSignedIn={isSignedIn} onRouteChange={this.onRouteChange} />
+        {
+          route === "home"
+            ? <> <Logo />
+            <Rank />
+            <ImageLinkForm onInputChange={this.onInputChange} onButtonSubmit={this.onButtonSubmit} />
+            <FaceRecognition box={box} imageUrl={imageUrl} />
+          </>
+          : (
+            route === "signIn"
+            ? <SignIn onRouteChange={this.onRouteChange} />
+            : <Register onRouteChange={this.onRouteChange} />
+          )
+        }
       </div>
     );
   }
